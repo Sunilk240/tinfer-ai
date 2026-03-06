@@ -1,0 +1,44 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tinfer-ai"
+version = "0.2.0"
+description = "Tinfer — Tiny Inference Engine. Run LLMs locally with GPU acceleration."
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.8"
+authors = [
+    {name = "Sunil", email = "kumawatsunil0663@gmail.com"}
+]
+keywords = ["llm", "inference", "ai", "gpu", "cuda", "gguf", "local"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "requests>=2.28.0",
+]
+
+[project.urls]
+Documentation = "https://sunilk240.github.io/tinfer-documentation/"
+
+[project.scripts]
+tinfer = "tinfer.cli:main_cli"
+tinfer-server = "tinfer.cli:main_server"
+tinfer-bench = "tinfer.cli:main_bench"
+tinfer-quantize = "tinfer.cli:main_quantize"
+tinfer-setup = "tinfer.cli:main_setup"
+
+[tool.setuptools.packages.find]
+include = ["tinfer*"]
+
+[tool.setuptools.package-data]
+tinfer = ["bin/*"]

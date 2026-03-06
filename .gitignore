@@ -1,0 +1,31 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Tinfer binaries (downloaded via tinfer-setup, not tracked in git)
+tinfer/bin/*.exe
+tinfer/bin/*.dll
+tinfer/bin/*.so
+tinfer/bin/*.so.*
+tinfer/bin/*.dylib
+tinfer/bin/*.metal
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Virtual environments
+.venv/
+venv/
+env/

@@ -1,0 +1,374 @@
+name: Build Tinfer Binaries
+
+on:
+  push:
+    tags:
+      - 'v*'  # Trigger on version tags like v0.2.0
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  # YOUR tinfer-code repo (modified llama.cpp that outputs tinfer-* binaries)
+  TINFER_CODE_REPO: "https://github.com/Sunilk240/tinfer-code.git"
+  TINFER_CODE_BRANCH: "main"
+
+jobs:
+  # ============================================================
+  # Job 1: Windows x64 CUDA (Universal — All SM Architectures)
+  # ============================================================
+  build-windows-cuda:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout tinfer-ai repo
+        uses: actions/checkout@v4
+
+      - name: Clone tinfer-code (modified llama.cpp)
+        run: git clone --depth 1 -b ${{ env.TINFER_CODE_BRANCH }} ${{ env.TINFER_CODE_REPO }} tinfer-code
+
+      - name: Install CUDA Toolkit
+        uses: Jimver/cuda-toolkit@v0.2.19
+        with:
+          cuda: '12.6.3'
+
+      - name: Configure CMake (CUDA ON, All Architectures)
+        run: |
+          cd tinfer-code
+          cmake -B build -G "Visual Studio 17 2022" `
+            -DGGML_CUDA=ON `
+            -DCMAKE_CUDA_ARCHITECTURES="50;52;60;61;70;75;80;86;89;90"
+
+      - name: Build
+        run: |
+          cd tinfer-code
+          cmake --build build --config Release -j
+
+      - name: Bundle
+        run: |
+          mkdir bundle
+          # tinfer-code build already creates tinfer-named aliases
+          copy tinfer-code\build\bin\Release\tinfer.exe bundle\
+          copy tinfer-code\build\bin\Release\tinfer-server.exe bundle\
+          copy tinfer-code\build\bin\Release\tinfer-bench.exe bundle\
+          copy tinfer-code\build\bin\Release\tinfer-quantize.exe bundle\
+          # Copy all required DLLs (ggml-cuda.dll, ggml-cpu.dll, llama.dll, etc.)
+          copy tinfer-code\build\bin\Release\*.dll bundle\
+
+      - name: Create ZIP
+        run: |
+          $version = "${{ github.ref_name }}"
+          Compress-Archive -Path bundle\* -DestinationPath "tinfer-${version}-win-x64-cuda.zip"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tinfer-win-x64-cuda
+          path: tinfer-*-win-x64-cuda.zip
+
+  # ============================================================
+  # Job 2: Windows x64 CPU Only
+  # ============================================================
+  build-windows-cpu:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout tinfer-ai repo
+        uses: actions/checkout@v4
+
+      - name: Clone tinfer-code (modified llama.cpp)
+        run: git clone --depth 1 -b ${{ env.TINFER_CODE_BRANCH }} ${{ env.TINFER_CODE_REPO }} tinfer-code
+
+      - name: Configure CMake (CUDA OFF — pure CPU)
+        run: |
+          cd tinfer-code
+          cmake -B build -G "Visual Studio 17 2022" `
+            -DGGML_CUDA=OFF
+
+      - name: Build
+        run: |
+          cd tinfer-code
+          cmake --build build --config Release -j
+
+      - name: Bundle
+        run: |
+          mkdir bundle
+          copy tinfer-code\build\bin\Release\tinfer.exe bundle\
+          copy tinfer-code\build\bin\Release\tinfer-server.exe bundle\
+          copy tinfer-code\build\bin\Release\tinfer-bench.exe bundle\
+          copy tinfer-code\build\bin\Release\tinfer-quantize.exe bundle\
+          copy tinfer-code\build\bin\Release\*.dll bundle\
+
+      - name: Create ZIP
+        run: |
+          $version = "${{ github.ref_name }}"
+          Compress-Archive -Path bundle\* -DestinationPath "tinfer-${version}-win-x64-cpu.zip"
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tinfer-win-x64-cpu
+          path: tinfer-*-win-x64-cpu.zip
+
+  # ============================================================
+  # Job 3: Linux x64 CUDA (Universal — All SM Architectures)
+  # ============================================================
+  build-linux-cuda:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tinfer-ai repo
+        uses: actions/checkout@v4
+
+      - name: Clone tinfer-code (modified llama.cpp)
+        run: git clone --depth 1 -b ${{ env.TINFER_CODE_BRANCH }} ${{ env.TINFER_CODE_REPO }} tinfer-code
+
+      - name: Install CUDA Toolkit
+        uses: Jimver/cuda-toolkit@v0.2.19
+        with:
+          cuda: '12.6.3'
+
+      - name: Configure CMake (CUDA ON, All Architectures)
+        run: |
+          cd tinfer-code
+          cmake -B build \
+            -DGGML_CUDA=ON \
+            -DCMAKE_CUDA_ARCHITECTURES="50;52;60;61;70;75;80;86;89;90"
+
+      - name: Build
+        run: |
+          cd tinfer-code
+          cmake --build build --config Release -j $(nproc)
+
+      - name: Bundle
+        run: |
+          mkdir bundle
+          cp tinfer-code/build/bin/tinfer bundle/
+          cp tinfer-code/build/bin/tinfer-server bundle/
+          cp tinfer-code/build/bin/tinfer-bench bundle/
+          cp tinfer-code/build/bin/tinfer-quantize bundle/
+          # Copy shared libraries
+          cp tinfer-code/build/lib/*.so* bundle/ 2>/dev/null || true
+          cp tinfer-code/build/bin/*.so* bundle/ 2>/dev/null || true
+          chmod +x bundle/tinfer*
+
+      - name: Create TAR
+        run: |
+          VERSION="${{ github.ref_name }}"
+          tar -czf "tinfer-${VERSION}-linux-x64-cuda.tar.gz" -C bundle .
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tinfer-linux-x64-cuda
+          path: tinfer-*-linux-x64-cuda.tar.gz
+
+  # ============================================================
+  # Job 4: Linux x64 CPU Only
+  # ============================================================
+  build-linux-cpu:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout tinfer-ai repo
+        uses: actions/checkout@v4
+
+      - name: Clone tinfer-code (modified llama.cpp)
+        run: git clone --depth 1 -b ${{ env.TINFER_CODE_BRANCH }} ${{ env.TINFER_CODE_REPO }} tinfer-code
+
+      - name: Configure CMake (CUDA OFF — pure CPU)
+        run: |
+          cd tinfer-code
+          cmake -B build \
+            -DGGML_CUDA=OFF
+
+      - name: Build
+        run: |
+          cd tinfer-code
+          cmake --build build --config Release -j $(nproc)
+
+      - name: Bundle
+        run: |
+          mkdir bundle
+          cp tinfer-code/build/bin/tinfer bundle/
+          cp tinfer-code/build/bin/tinfer-server bundle/
+          cp tinfer-code/build/bin/tinfer-bench bundle/
+          cp tinfer-code/build/bin/tinfer-quantize bundle/
+          cp tinfer-code/build/lib/*.so* bundle/ 2>/dev/null || true
+          cp tinfer-code/build/bin/*.so* bundle/ 2>/dev/null || true
+          chmod +x bundle/tinfer*
+
+      - name: Create TAR
+        run: |
+          VERSION="${{ github.ref_name }}"
+          tar -czf "tinfer-${VERSION}-linux-x64-cpu.tar.gz" -C bundle .
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tinfer-linux-x64-cpu
+          path: tinfer-*-linux-x64-cpu.tar.gz
+
+  # ============================================================
+  # Job 5: Linux ARM64 CPU Only
+  # ============================================================
+  build-linux-arm64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout tinfer-ai repo
+        uses: actions/checkout@v4
+
+      - name: Clone tinfer-code (modified llama.cpp)
+        run: git clone --depth 1 -b ${{ env.TINFER_CODE_BRANCH }} ${{ env.TINFER_CODE_REPO }} tinfer-code
+
+      - name: Configure CMake (CPU Only)
+        run: |
+          cd tinfer-code
+          cmake -B build \
+            -DGGML_CUDA=OFF
+
+      - name: Build
+        run: |
+          cd tinfer-code
+          cmake --build build --config Release -j $(nproc)
+
+      - name: Bundle
+        run: |
+          mkdir bundle
+          cp tinfer-code/build/bin/tinfer bundle/
+          cp tinfer-code/build/bin/tinfer-server bundle/
+          cp tinfer-code/build/bin/tinfer-bench bundle/
+          cp tinfer-code/build/bin/tinfer-quantize bundle/
+          cp tinfer-code/build/lib/*.so* bundle/ 2>/dev/null || true
+          cp tinfer-code/build/bin/*.so* bundle/ 2>/dev/null || true
+          chmod +x bundle/tinfer*
+
+      - name: Create TAR
+        run: |
+          VERSION="${{ github.ref_name }}"
+          tar -czf "tinfer-${VERSION}-linux-arm64-cpu.tar.gz" -C bundle .
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tinfer-linux-arm64-cpu
+          path: tinfer-*-linux-arm64-cpu.tar.gz
+
+  # ============================================================
+  # Job 6: macOS ARM64 (Apple Silicon — Metal GPU)
+  # ============================================================
+  build-macos-arm64:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout tinfer-ai repo
+        uses: actions/checkout@v4
+
+      - name: Clone tinfer-code (modified llama.cpp)
+        run: git clone --depth 1 -b ${{ env.TINFER_CODE_BRANCH }} ${{ env.TINFER_CODE_REPO }} tinfer-code
+
+      - name: Configure CMake (Metal enabled)
+        run: |
+          cd tinfer-code
+          cmake -B build \
+            -DGGML_METAL=ON
+
+      - name: Build
+        run: |
+          cd tinfer-code
+          cmake --build build --config Release -j $(sysctl -n hw.ncpu)
+
+      - name: Bundle
+        run: |
+          mkdir bundle
+          cp tinfer-code/build/bin/tinfer bundle/
+          cp tinfer-code/build/bin/tinfer-server bundle/
+          cp tinfer-code/build/bin/tinfer-bench bundle/
+          cp tinfer-code/build/bin/tinfer-quantize bundle/
+          cp tinfer-code/build/lib/*.dylib bundle/ 2>/dev/null || true
+          cp tinfer-code/build/bin/*.dylib bundle/ 2>/dev/null || true
+          # Copy Metal shader file
+          cp tinfer-code/build/bin/*.metal bundle/ 2>/dev/null || true
+          chmod +x bundle/tinfer*
+
+      - name: Create TAR
+        run: |
+          VERSION="${{ github.ref_name }}"
+          tar -czf "tinfer-${VERSION}-macos-arm64-metal.tar.gz" -C bundle .
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tinfer-macos-arm64-metal
+          path: tinfer-*-macos-arm64-metal.tar.gz
+
+  # ============================================================
+  # Job 7: macOS x64 (Intel Mac — CPU Only)
+  # ============================================================
+  build-macos-x64:
+    runs-on: macos-13
+    steps:
+      - name: Checkout tinfer-ai repo
+        uses: actions/checkout@v4
+
+      - name: Clone tinfer-code (modified llama.cpp)
+        run: git clone --depth 1 -b ${{ env.TINFER_CODE_BRANCH }} ${{ env.TINFER_CODE_REPO }} tinfer-code
+
+      - name: Configure CMake (CPU Only — no Metal)
+        run: |
+          cd tinfer-code
+          cmake -B build \
+            -DGGML_METAL=OFF
+
+      - name: Build
+        run: |
+          cd tinfer-code
+          cmake --build build --config Release -j $(sysctl -n hw.ncpu)
+
+      - name: Bundle
+        run: |
+          mkdir bundle
+          cp tinfer-code/build/bin/tinfer bundle/
+          cp tinfer-code/build/bin/tinfer-server bundle/
+          cp tinfer-code/build/bin/tinfer-bench bundle/
+          cp tinfer-code/build/bin/tinfer-quantize bundle/
+          cp tinfer-code/build/lib/*.dylib bundle/ 2>/dev/null || true
+          cp tinfer-code/build/bin/*.dylib bundle/ 2>/dev/null || true
+          chmod +x bundle/tinfer*
+
+      - name: Create TAR
+        run: |
+          VERSION="${{ github.ref_name }}"
+          tar -czf "tinfer-${VERSION}-macos-x64-cpu.tar.gz" -C bundle .
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: tinfer-macos-x64-cpu
+          path: tinfer-*-macos-x64-cpu.tar.gz
+
+  # ============================================================
+  # Release Job: Collect all artifacts and publish to GitHub Releases
+  # ============================================================
+  release:
+    needs:
+      - build-windows-cuda
+      - build-windows-cpu
+      - build-linux-cuda
+      - build-linux-cpu
+      - build-linux-arm64
+      - build-macos-arm64
+      - build-macos-x64
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: List release assets
+        run: ls -lah release-assets/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release-assets/*
+          generate_release_notes: true
+          draft: false
+          prerelease: false
