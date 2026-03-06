@@ -39,7 +39,7 @@ jobs:
       - name: Build
         run: |
           cd tinfer-code
-          cmake --build build --config Release -j
+          cmake --build build --config Release -j --target llama-cli llama-server llama-bench llama-quantize
 
       - name: Bundle
         run: |
@@ -84,7 +84,7 @@ jobs:
       - name: Build
         run: |
           cd tinfer-code
-          cmake --build build --config Release -j
+          cmake --build build --config Release -j --target llama-cli llama-server llama-bench llama-quantize
 
       - name: Bundle
         run: |
@@ -119,7 +119,7 @@ jobs:
         run: git clone --depth 1 -b ${{ env.TINFER_CODE_BRANCH }} ${{ env.TINFER_CODE_REPO }} tinfer-code
 
       - name: Install CUDA Toolkit
-        uses: Jimver/cuda-toolkit@v0.2.19
+        uses: Jimver/cuda-toolkit@v0.2.23
         with:
           cuda: '12.6.3'
 
@@ -133,7 +133,7 @@ jobs:
       - name: Build
         run: |
           cd tinfer-code
-          cmake --build build --config Release -j $(nproc)
+          cmake --build build --config Release -j $(nproc) --target llama-cli llama-server llama-bench llama-quantize
 
       - name: Bundle
         run: |
@@ -179,7 +179,7 @@ jobs:
       - name: Build
         run: |
           cd tinfer-code
-          cmake --build build --config Release -j $(nproc)
+          cmake --build build --config Release -j $(nproc) --target llama-cli llama-server llama-bench llama-quantize
 
       - name: Bundle
         run: |
@@ -224,7 +224,7 @@ jobs:
       - name: Build
         run: |
           cd tinfer-code
-          cmake --build build --config Release -j $(nproc)
+          cmake --build build --config Release -j $(nproc) --target llama-cli llama-server llama-bench llama-quantize
 
       - name: Bundle
         run: |
@@ -269,7 +269,7 @@ jobs:
       - name: Build
         run: |
           cd tinfer-code
-          cmake --build build --config Release -j $(sysctl -n hw.ncpu)
+          cmake --build build --config Release -j $(sysctl -n hw.ncpu) --target llama-cli llama-server llama-bench llama-quantize
 
       - name: Bundle
         run: |
@@ -316,7 +316,7 @@ jobs:
       - name: Build
         run: |
           cd tinfer-code
-          cmake --build build --config Release -j $(sysctl -n hw.ncpu)
+          cmake --build build --config Release -j $(sysctl -n hw.ncpu) --target llama-cli llama-server llama-bench llama-quantize
 
       - name: Bundle
         run: |
