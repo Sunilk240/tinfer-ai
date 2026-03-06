@@ -25,7 +25,7 @@ jobs:
         run: git clone --depth 1 -b ${{ env.TINFER_CODE_BRANCH }} ${{ env.TINFER_CODE_REPO }} tinfer-code
 
       - name: Install CUDA Toolkit
-        uses: Jimver/cuda-toolkit@v0.2.19
+        uses: Jimver/cuda-toolkit@v0.2.23
         with:
           cuda: '12.6.3'
 
@@ -299,7 +299,7 @@ jobs:
   # Job 7: macOS x64 (Intel Mac — CPU Only)
   # ============================================================
   build-macos-x64:
-    runs-on: macos-13
+    runs-on: macos-15-intel
     steps:
       - name: Checkout tinfer-ai repo
         uses: actions/checkout@v4
