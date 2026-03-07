@@ -162,7 +162,7 @@ def download_with_progress(url, dest_path):
                 percent = downloaded / total_size * 100
                 bar_len = 40
                 filled = int(bar_len * downloaded // total_size)
-                bar = "█" * filled + "░" * (bar_len - filled)
+                bar = "#" * filled + "-" * (bar_len - filled)
                 size_mb = downloaded / (1024 * 1024)
                 total_mb = total_size / (1024 * 1024)
                 sys.stdout.write(f"\r[{bar}] {percent:.0f}% ({size_mb:.1f}/{total_mb:.1f} MB)")
@@ -266,7 +266,7 @@ def run_setup():
     shutil.rmtree(temp_dir, ignore_errors=True)
 
     print()
-    print("[Tinfer] ✓ Setup complete!")
+    print("[Tinfer] Done! Setup complete!")
     print()
     print("  You can now run:")
     print("    tinfer -m path/to/model.gguf -p \"Hello!\"")
